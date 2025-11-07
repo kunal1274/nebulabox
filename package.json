@@ -1,6 +1,6 @@
 {
   "name": "nebulabox",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NebulaBox - A unified container engine for development, testing, and deployment",
   "main": "index.js",
   "bin": {
