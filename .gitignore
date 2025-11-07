@@ -1,0 +1,93 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+nebulabox
+nebulabox-api
+nebulabox-test
+nebulabox-registry
+nebulabox-cli
+
+# Test binary
+*.test
+
+# Output of the coverage tool
+*.out
+coverage.html
+coverage.xml
+
+# Dependency directories
+node_modules/
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.a
+*.o
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test results
+test-results/
+coverage/
+
+# Registry storage
+registry-storage/
+test-registry-storage/
+
+# Large files that shouldn't be in Git
+*.dmg
+*.pkg
+*.zip
+*.tar.gz
+*.deb
+*.rpm
+go.tar.gz
+
+# NebulaBox specific
+.nebulabox/
+storage/
+state/
+
