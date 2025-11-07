@@ -1,9 +1,15 @@
 {
   "name": "nebulabox",
-  "version": "1.0.0",
-  "description": "NebulaBox - Next-gen container runtime with schema-first architecture",
-  "private": true,
+  "version": "0.1.0",
+  "description": "NebulaBox - A unified container engine for development, testing, and deployment",
+  "main": "index.js",
+  "bin": {
+    "nbx": "./bin/nbx",
+    "nebulabox": "./bin/nebulabox"
+  },
   "scripts": {
+    "postinstall": "node scripts/install.js",
+    "preuninstall": "node scripts/uninstall.js",
     "generate": "node scripts/generate-from-schema.js",
     "generate:watch": "nodemon --watch schema/nebulabox.schema.json --exec 'npm run generate'",
     "generate:types": "node scripts/generate-from-schema.js --types",
@@ -15,13 +21,45 @@
     "collaborate": "node scripts/collaboration-sync.js",
     "schema:version": "node -e \"console.log(require('./schema/nebulabox.schema.json').version)\""
   },
+  "keywords": [
+    "container",
+    "docker",
+    "kubernetes",
+    "devops",
+    "deployment",
+    "containers",
+    "runtime"
+  ],
+  "author": "kunal1274",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kunal1274/nebulabox.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "scripts/install.js",
+    "scripts/uninstall.js",
+    "README.md",
+    "README_NPM.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "chokidar": "^3.5.3",
     "nodemon": "^3.0.2",
     "ws": "^8.16.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   },
   "dependencies": {
     "node": "^25.1.0"
