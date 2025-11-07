@@ -1,0 +1,59 @@
+# Development files
+.git/
+.gitignore
+.cursor/
+*.plan.md
+
+# Build artifacts
+bin/
+dist/
+*.exe
+*.out
+*.test
+
+# Documentation (keep README.md)
+docs/
+*.md
+!README.md
+
+# Scripts (keep install/uninstall)
+scripts/
+!scripts/install.js
+!scripts/uninstall.js
+
+# Source code
+internal/
+cmd/
+*.go
+go.mod
+go.sum
+Makefile
+
+# Test files
+*_test.go
+test-*
+e2e/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Node modules (if any)
+node_modules/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.log
+
