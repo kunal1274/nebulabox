@@ -5,6 +5,25 @@
 
 set -e
 
+# Check Git configuration
+if ! git config --get user.name > /dev/null 2>&1 || ! git config --get user.email > /dev/null 2>&1; then
+    echo "⚠️  Warning: Git user.name and user.email not configured"
+    echo ""
+    echo "Please configure Git:"
+    echo "  git config --global user.name 'Your Name'"
+    echo "  git config --global user.email 'your.email@example.com'"
+    echo ""
+    echo "Or configure for this repository only:"
+    echo "  git config user.name 'Your Name'"
+    echo "  git config user.email 'your.email@example.com'"
+    echo ""
+    read -p "Continue anyway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
 VERSION="${1:-$(git describe --tags --always --dirty 2>/dev/null || echo 'dev')}"
 BUILD_DIR="dist"
 BINARY_NAME="nebulabox"

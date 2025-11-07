@@ -27,16 +27,22 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GOPATH/env
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
           else
             VERSION=${GITHUB_REF#refs/tags/}
-            echo "version=$VERSION" >> $GOPATH/env
+            echo "version=$VERSION" >> $GITHUB_ENV
           fi
         shell: bash
       
+      - name: Configure Git
+        run: |
+          git config user.name "NebulaBox Release Bot"
+          git config user.email "release@nebulabox.dev"
+      
       - name: Build binaries
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION=${{ env.version }}
+          chmod +x scripts/build-release.sh
           ./scripts/build-release.sh $VERSION
       
       - name: Create release
