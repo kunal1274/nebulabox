@@ -1,0 +1,412 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nebulabox.io/schema/v1",
+  "title": "NebulaBox API Schema",
+  "description": "Central schema definition for NebulaBox API, UI, and Database",
+  "version": "1.0.0",
+  "definitions": {
+    "Container": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "image": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["created", "running", "stopped", "exited", "paused", "restarting"],
+          "default": "created"
+        },
+        "created": { "type": "string", "format": "date-time" },
+        "started": { "type": ["string", "null"], "format": "date-time" },
+        "stopped": { "type": ["string", "null"], "format": "date-time" },
+        "command": { "type": ["string", "null"] },
+        "env": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*=.*$" }
+        },
+        "ports": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^\\d+:\\d+(/tcp|/udp)?$" }
+        },
+        "volumes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^:]+:[^:]+(:ro)?$" }
+        },
+        "network": { "type": ["string", "null"] },
+        "workspaceId": { "type": ["string", "null"], "format": "uuid" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["id", "name", "image", "status", "created"],
+      "additionalProperties": false
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string", "default": "latest" },
+        "digest": { "type": ["string", "null"] },
+        "size": { "type": "string", "pattern": "^\\d+(\\.\\d+)?\\s*(MB|GB|KB)$" },
+        "created": { "type": "string", "format": "date-time" },
+        "registry": { "type": ["string", "null"] },
+        "repository": { "type": ["string", "null"] }
+      },
+      "required": ["id", "name", "tag", "size", "created"],
+      "additionalProperties": false
+    },
+    "Workspace": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "description": { "type": ["string", "null"] },
+        "status": {
+          "type": "string",
+          "enum": ["active", "paused", "stopped", "sleeping", "archived"],
+          "default": "active"
+        },
+        "ownerId": { "type": "string", "format": "uuid" },
+        "containerId": { "type": ["string", "null"], "format": "uuid" },
+        "members": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/WorkspaceMember" }
+        },
+        "settings": { "$ref": "#/definitions/WorkspaceSettings" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "status", "ownerId", "createdAt", "updatedAt"],
+      "additionalProperties": false
+    },
+    "WorkspaceMember": {
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "format": "uuid" },
+        "username": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "admin", "editor", "viewer"],
+          "default": "viewer"
+        },
+        "joinedAt": { "type": "string", "format": "date-time" },
+        "lastSeen": { "type": ["string", "null"], "format": "date-time" },
+        "isActive": { "type": "boolean", "default": false }
+      },
+      "required": ["userId", "role", "joinedAt"],
+      "additionalProperties": false
+    },
+    "WorkspaceSettings": {
+      "type": "object",
+      "properties": {
+        "allowGuestAccess": { "type": "boolean", "default": false },
+        "maxMembers": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "sessionTimeout": { "type": "integer", "minimum": 1, "default": 60 },
+        "autoPauseOnIdle": { "type": "boolean", "default": false },
+        "idleTimeout": { "type": "integer", "minimum": 1, "default": 30 },
+        "auditLogging": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    }
+  },
+  "api": {
+    "endpoints": {
+      "containers": {
+        "list": {
+          "method": "GET",
+          "path": "/api/containers",
+          "query": {
+            "all": { "type": "boolean", "default": false },
+            "workspaceId": { "type": ["string", "null"], "format": "uuid" }
+          },
+          "response": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Container" }
+          }
+        },
+        "get": {
+          "method": "GET",
+          "path": "/api/containers/:id",
+          "params": {
+            "id": { "type": "string", "format": "uuid" }
+          },
+          "response": { "$ref": "#/definitions/Container" }
+        },
+        "create": {
+          "method": "POST",
+          "path": "/api/containers/run",
+          "request": {
+            "type": "object",
+            "properties": {
+              "image": { "type": "string", "minLength": 1 },
+              "name": { "type": "string" },
+              "port": { "type": "string" },
+              "ports": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "env": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "volume": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "network": { "type": "string" },
+              "workspaceId": { "type": ["string", "null"], "format": "uuid" },
+              "detach": { "type": "boolean", "default": false }
+            },
+            "required": ["image"]
+          },
+          "response": { "$ref": "#/definitions/Container" }
+        },
+        "start": {
+          "method": "POST",
+          "path": "/api/containers/:id/start",
+          "params": {
+            "id": { "type": "string", "format": "uuid" }
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" },
+              "id": { "type": "string" }
+            }
+          }
+        },
+        "stop": {
+          "method": "POST",
+          "path": "/api/containers/:id/stop",
+          "params": {
+            "id": { "type": "string", "format": "uuid" }
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" },
+              "id": { "type": "string" }
+            }
+          }
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/api/containers/:id",
+          "params": {
+            "id": { "type": "string", "format": "uuid" }
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" }
+            }
+          }
+        }
+      },
+      "images": {
+        "list": {
+          "method": "GET",
+          "path": "/api/images",
+          "response": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Image" }
+          }
+        },
+        "pull": {
+          "method": "POST",
+          "path": "/api/images/pull",
+          "request": {
+            "type": "object",
+            "properties": {
+              "image": { "type": "string", "minLength": 1 }
+            },
+            "required": ["image"]
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" },
+              "image": { "type": "string" }
+            }
+          }
+        },
+        "build": {
+          "method": "POST",
+          "path": "/api/images/build",
+          "request": {
+            "type": "object",
+            "properties": {
+              "dockerfile": { "type": "string" },
+              "tag": { "type": "string", "minLength": 1 }
+            },
+            "required": ["tag"]
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "tag": { "type": "string" },
+              "image": { "type": "string" },
+              "logs": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "workspaces": {
+        "list": {
+          "method": "GET",
+          "path": "/api/workspaces",
+          "response": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Workspace" }
+          }
+        },
+        "get": {
+          "method": "GET",
+          "path": "/api/workspaces/:id",
+          "params": {
+            "id": { "type": "string", "format": "uuid" }
+          },
+          "response": { "$ref": "#/definitions/Workspace" }
+        },
+        "create": {
+          "method": "POST",
+          "path": "/api/workspaces",
+          "request": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+              "description": { "type": ["string", "null"] },
+              "settings": { "$ref": "#/definitions/WorkspaceSettings" }
+            },
+            "required": ["name"]
+          },
+          "response": { "$ref": "#/definitions/Workspace" }
+        }
+      }
+    }
+  },
+  "database": {
+    "tables": {
+      "containers": {
+        "primaryKey": "id",
+        "indexes": ["name", "status", "workspace_id", "created_at"],
+        "columns": {
+          "id": { "type": "string", "dbType": "VARCHAR(255)", "primaryKey": true },
+          "name": { "type": "string", "dbType": "VARCHAR(255)", "indexed": true },
+          "image": { "type": "string", "dbType": "VARCHAR(255)" },
+          "status": { "type": "string", "dbType": "VARCHAR(50)", "indexed": true },
+          "created": { "type": "datetime", "dbType": "TIMESTAMP" },
+          "ports": { "type": "json", "dbType": "TEXT" },
+          "env": { "type": "json", "dbType": "TEXT" },
+          "volumes": { "type": "json", "dbType": "TEXT" },
+          "network": { "type": "string", "dbType": "VARCHAR(255)" },
+          "workspace_id": { "type": ["string", "null"], "dbType": "VARCHAR(255)", "indexed": true, "foreignKey": "workspaces.id" }
+        }
+      },
+      "images": {
+        "primaryKey": "id",
+        "indexes": ["name", "tag", "repository", "created_at"],
+        "columns": {
+          "id": { "type": "string", "dbType": "VARCHAR(255)", "primaryKey": true },
+          "name": { "type": "string", "dbType": "VARCHAR(255)", "indexed": true },
+          "tag": { "type": "string", "dbType": "VARCHAR(255)", "indexed": true },
+          "digest": { "type": ["string", "null"], "dbType": "VARCHAR(255)" },
+          "size": { "type": "integer", "dbType": "BIGINT" },
+          "created": { "type": "datetime", "dbType": "TIMESTAMP" },
+          "repository": { "type": ["string", "null"], "dbType": "VARCHAR(255)", "indexed": true }
+        }
+      },
+      "workspaces": {
+        "primaryKey": "id",
+        "indexes": ["name", "status", "owner_id", "created_at"],
+        "columns": {
+          "id": { "type": "string", "dbType": "VARCHAR(255)", "primaryKey": true },
+          "name": { "type": "string", "dbType": "VARCHAR(255)", "indexed": true },
+          "description": { "type": ["string", "null"], "dbType": "TEXT" },
+          "status": { "type": "string", "dbType": "VARCHAR(50)", "indexed": true },
+          "owner_id": { "type": "string", "dbType": "VARCHAR(255)", "indexed": true },
+          "settings": { "type": "json", "dbType": "TEXT" },
+          "metadata": { "type": "json", "dbType": "TEXT" },
+          "created_at": { "type": "datetime", "dbType": "TIMESTAMP", "indexed": true },
+          "updated_at": { "type": "datetime", "dbType": "TIMESTAMP" }
+        }
+      }
+    }
+  },
+  "ui": {
+    "components": {
+      "ContainerList": {
+        "dataSource": "/api/containers",
+        "fields": ["id", "name", "image", "status", "created"],
+        "actions": ["start", "stop", "delete", "logs", "exec"],
+        "filters": ["status", "workspace"],
+        "sort": ["name", "created", "status"]
+      },
+      "ImageList": {
+        "dataSource": "/api/images",
+        "fields": ["id", "name", "tag", "size", "created"],
+        "actions": ["pull", "push", "build", "scan", "delete"],
+        "filters": ["tag", "repository"],
+        "sort": ["name", "created", "size"]
+      },
+      "WorkspaceList": {
+        "dataSource": "/api/workspaces",
+        "fields": ["id", "name", "status", "ownerId", "members", "createdAt"],
+        "actions": ["create", "join", "leave", "invite", "share"],
+        "filters": ["status", "owner"],
+        "sort": ["name", "createdAt"]
+      }
+    }
+  },
+  "testing": {
+    "hooks": {
+      "onSave": {
+        "triggers": ["unit", "integration", "e2e"],
+        "scope": "changed-files",
+        "timeout": 30000
+      },
+      "onCommit": {
+        "triggers": ["full-suite"],
+        "scope": "all",
+        "timeout": 300000
+      }
+    },
+    "coverage": {
+      "unit": { "target": 85, "current": 45 },
+      "integration": { "target": 80, "current": 30 },
+      "e2e": { "target": 70, "current": 20 }
+    }
+  },
+  "collaboration": {
+    "features": {
+      "realtime": {
+        "enabled": true,
+        "protocol": "websocket",
+        "sync": {
+          "type": "operational-transform",
+          "conflictResolution": "last-write-wins"
+        }
+      },
+      "presence": {
+        "enabled": true,
+        "indicators": ["cursor", "selection", "typing"],
+        "updateInterval": 1000
+      },
+      "fileSync": {
+        "enabled": true,
+        "strategy": "eventual-consistency",
+        "conflictResolution": "manual"
+      }
+    }
+  }
+}
+

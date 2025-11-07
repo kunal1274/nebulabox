@@ -1,48 +1,13 @@
 package cli
 
 import (
-	"context"
 	"fmt"
+	"os"
 
-	"github.com/nebulabox/nebulabox/internal/containerd"
 	"github.com/spf13/cobra"
 )
 
-// NewBuildCommand creates the build command
-func NewBuildCommand() *cobra.Command {
-	var tag string
-	var file string
-
-	cmd := &cobra.Command{
-		Use:   "build [flags] PATH",
-		Short: "Build an image from a Dockerfile",
-		Long:  `Build an image from a Dockerfile or NebulaBox build specification.`,
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return buildImage(args[0], tag, file)
-		},
-	}
-
-	cmd.Flags().StringVarP(&tag, "tag", "t", "", "Name and optionally a tag in the 'name:tag' format")
-	cmd.Flags().StringVarP(&file, "file", "f", "Dockerfile", "Name of the Dockerfile")
-
-	return cmd
-}
-
-func buildImage(path, tag, file string) error {
-	fmt.Printf("🔨 Building image from: %s\n", path)
-	fmt.Printf("📄 Using build file: %s\n", file)
-	
-	if tag != "" {
-		fmt.Printf("🏷️  Tag: %s\n", tag)
-	}
-	
-	// TODO: Implement actual build process
-	fmt.Println("✅ Build completed successfully!")
-	fmt.Println("💡 This is a placeholder - build system coming in Phase 2!")
-	
-	return nil
-}
+// Build command moved to build_cmd.go
 
 // NewPushCommand creates the push command
 func NewPushCommand() *cobra.Command {
@@ -86,21 +51,18 @@ func NewPullCommand() *cobra.Command {
 
 func pullImage(image string) error {
 	fmt.Printf("⬇️  Pulling image: %s\n", image)
-	
-	// Initialize containerd client
-	client, err := containerd.NewClient()
+
+	// Create engine client
+	client, err := NewEngineClient()
 	if err != nil {
-		return fmt.Errorf("failed to initialize containerd client: %w", err)
+		return fmt.Errorf("failed to create engine client: %w", err)
 	}
-	defer client.Close()
-	
-	ctx := context.Background()
-	
+
 	// Pull image
-	if err := client.PullImage(ctx, image); err != nil {
+	if err := client.PullImage(image); err != nil {
 		return fmt.Errorf("failed to pull image %s: %w", image, err)
 	}
-	
+
 	fmt.Printf("✅ Image pulled successfully: %s\n", image)
 	return nil
 }
@@ -120,15 +82,50 @@ func NewVersionCommand() *cobra.Command {
 }
 
 func showVersion() error {
+	// Try to get version from main package
+	version := getVersion()
+	buildTime := getBuildTime()
+	gitCommit := getGitCommit()
+	
 	fmt.Println("🚀 NebulaBox")
-	fmt.Println("Version:     0.1.0-alpha")
-	fmt.Println("Build:      Phase 1 Development")
+	fmt.Printf("Version:     %s\n", version)
+	if buildTime != "unknown" {
+		fmt.Printf("Build Time:  %s\n", buildTime)
+	}
+	if gitCommit != "unknown" {
+		shortCommit := gitCommit
+		if len(shortCommit) > 7 {
+			shortCommit = shortCommit[:7]
+		}
+		fmt.Printf("Git Commit:  %s\n", shortCommit)
+	}
 	fmt.Println("Go Version: 1.22+")
-	fmt.Println("Platform:   macOS")
 	fmt.Println("")
 	fmt.Println("🎯 Current Phase: Core Workflow Layer")
-	fmt.Println("📋 Features: CLI, Basic Commands, Placeholder Integration")
-	fmt.Println("🔮 Next: containerd Runtime Integration")
+	fmt.Println("📋 Features: CLI, Basic Commands, Real Engine Integration")
+	fmt.Println("🔮 Next: API Development")
 	
 	return nil
+}
+
+// These will be set by the main package or via build flags
+func getVersion() string {
+	if v := os.Getenv("NEBULABOX_VERSION"); v != "" {
+		return v
+	}
+	return "0.1.0-alpha"
+}
+
+func getBuildTime() string {
+	if t := os.Getenv("NEBULABOX_BUILD_TIME"); t != "" {
+		return t
+	}
+	return "unknown"
+}
+
+func getGitCommit() string {
+	if c := os.Getenv("NEBULABOX_GIT_COMMIT"); c != "" {
+		return c
+	}
+	return "unknown"
 }

@@ -1,11 +1,12 @@
 package cli
 
 import (
-	"context"
 	"fmt"
+	"strings"
+	"time"
 
-	"github.com/nebulabox/nebulabox/internal/containerd"
 	"github.com/spf13/cobra"
+	"github.com/nebulabox/nebulabox/internal/engine"
 )
 
 // NewRunCommand creates the run command
@@ -60,70 +61,109 @@ type runOptions struct {
 
 func runContainer(image string, command []string, opts runOptions) error {
 	fmt.Printf("🚀 NebulaBox: Starting container from image '%s'\n", image)
-	
-	// Initialize containerd client
-	client, err := containerd.NewClient()
+
+	// Create engine client
+	client, err := NewEngineClient()
 	if err != nil {
-		return fmt.Errorf("failed to initialize containerd client: %w", err)
+		return fmt.Errorf("failed to create engine client: %w", err)
 	}
-	defer client.Close()
-	
-	ctx := context.Background()
-	
-	// Pull image first
+
+	// Pull image first (if not exists)
 	fmt.Printf("⬇️  Pulling image: %s\n", image)
-	if err := client.PullImage(ctx, image); err != nil {
-		return fmt.Errorf("failed to pull image: %w", err)
+	if err := client.PullImage(image); err != nil {
+		// Image might already exist, continue
+		fmt.Printf("⚠️  Image pull note: %v (continuing...)\n", err)
 	}
-	
-	// Create container options
-	containerOpts := &containerd.ContainerOptions{
-		Name:        opts.name,
-		Ports:       make(map[string]string),
-		Environment: make(map[string]string),
-		Volumes:     make(map[string]string),
-		Detach:      opts.detach,
+
+	// Generate container ID if name not provided
+	containerID := opts.name
+	if containerID == "" {
+		containerID = generateContainerID(image)
 	}
-	
-	// Parse port mapping
+
+	// Parse port mappings
+	ports := make(map[string]string)
 	if opts.port != "" {
-		containerOpts.Ports["80"] = opts.port // Default to port 80
+		// Parse "host:container" or "container"
+		parts := strings.Split(opts.port, ":")
+		if len(parts) == 2 {
+			ports[parts[1]] = parts[0]
+		} else {
+			ports[opts.port] = opts.port
+		}
 	}
-	
+
 	// Parse environment variables
-	for _, env := range opts.env {
-		containerOpts.Environment[env] = env // Simplified for now
+	env := make(map[string]string)
+	for _, e := range opts.env {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			env[parts[0]] = parts[1]
+		} else {
+			env[e] = ""
+		}
 	}
-	
+
 	// Parse volume mounts
+	volumes := make(map[string]string)
 	for _, vol := range opts.volume {
-		containerOpts.Volumes[vol] = vol // Simplified for now
+		parts := strings.SplitN(vol, ":", 2)
+		if len(parts) == 2 {
+			volumes[parts[1]] = parts[0]
+		} else {
+			volumes[vol] = vol
+		}
 	}
-	
+
+	// Create container spec
+	spec := &engine.ContainerSpec{
+		ID:      containerID,
+		Name:    opts.name,
+		Image:   image,
+		Command: command,
+		Ports:   ports,
+		Env:     env,
+		Volumes: volumes,
+	}
+
 	// Create container
 	fmt.Printf("📦 Creating container...\n")
-	container, err := client.CreateContainer(ctx, image, opts.name, containerOpts)
+	container, err := client.CreateContainer(spec)
 	if err != nil {
 		return fmt.Errorf("failed to create container: %w", err)
 	}
-	
+
 	// Start container
 	fmt.Printf("🔄 Starting container: %s\n", container.ID)
-	if err := client.StartContainer(ctx, container.ID); err != nil {
+	if err := client.StartContainer(container.ID); err != nil {
 		return fmt.Errorf("failed to start container: %w", err)
 	}
-	
+
 	fmt.Printf("✅ Container started successfully!\n")
 	fmt.Printf("   ID: %s\n", container.ID)
 	fmt.Printf("   Name: %s\n", container.Name)
 	fmt.Printf("   Image: %s\n", container.Image)
-	fmt.Printf("   Status: %s\n", container.Status)
-	
+	fmt.Printf("   Status: %s\n", container.State)
+
 	if opts.detach {
 		fmt.Println("🔄 Running in background...")
 	} else {
 		fmt.Println("🔄 Running in foreground...")
 	}
-	
+
 	return nil
+}
+
+func generateContainerID(image string) string {
+	// Simple ID generation from image name
+	parts := strings.Split(image, ":")
+	name := parts[0]
+	if len(name) > 8 {
+		name = name[:8]
+	}
+	return fmt.Sprintf("%s-%d", name, getTimestamp())
+}
+
+func getTimestamp() int64 {
+	return time.Now().UnixNano()
 }

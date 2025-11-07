@@ -1,0 +1,95 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  skip-dirs:
+    - vendor
+    - node_modules
+  skip-files:
+    - ".*\\.pb\\.go$"
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  
+  gocritic:
+    enabled-tags:
+      - performance
+      - diagnostic
+    disabled-checks:
+      - commentFormatting
+  
+  govet:
+    check-shadowing: true
+  
+  gocyclo:
+    min-complexity: 15
+  
+  maligned:
+    suggest-new: true
+  
+  dupl:
+    threshold: 100
+  
+  funlen:
+    lines: 100
+    statements: 50
+  
+  gocognit:
+    min-complexity: 15
+  
+  misspell:
+    locale: US
+  
+  nakedret:
+    max-func-lines: 30
+  
+  unparam:
+    check-exported: false
+
+linters:
+  enable:
+    - errcheck
+    - goconst
+    - gocritic
+    - gofmt
+    - goimports
+    - golint
+    - govet
+    - ineffassign
+    - interfacer
+    - misspell
+    - nakedret
+    - structcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - vet
+    - staticcheck
+    - gosimple
+    - stylecheck
+    - gosec
+    - gocyclo
+    - dupl
+    - funlen
+    - gocognit
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - funlen
+        - gocognit
+    - path: mock
+      text: "exported.*should have comment"
+      linters:
+        - golint
+

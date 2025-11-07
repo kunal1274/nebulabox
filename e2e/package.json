@@ -1,0 +1,41 @@
+{
+  "name": "nebulabox-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for NebulaBox using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:mvp": "playwright test --grep @mvp",
+    "test:report": "playwright show-report",
+    "test:codegen": "playwright codegen http://localhost:3001",
+    "test:all": "playwright test",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:fix": "tsx scripts/test-fixer.ts",
+    "test:check": "tsx scripts/test-fixer.ts check",
+    "test:status": "tsx scripts/test-fixer.ts status",
+    "test:monitor": "./scripts/monitor-tests.sh",
+    "test:watch": "./scripts/monitor-tests.sh watch",
+    "test:quickfix": "./scripts/quick-fix.sh",
+    "test:failed": "playwright test --last-failed",
+    "test:ui-fix": "playwright test --ui --last-failed"
+  },
+  "keywords": [
+    "e2e",
+    "testing",
+    "playwright",
+    "nebulabox"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.3"
+  }
+}

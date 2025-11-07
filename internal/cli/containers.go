@@ -1,11 +1,12 @@
 package cli
 
 import (
-	"context"
 	"fmt"
+	"os"
+	"text/tabwriter"
 
-	"github.com/nebulabox/nebulabox/internal/containerd"
 	"github.com/spf13/cobra"
+	"github.com/nebulabox/nebulabox/internal/engine"
 )
 
 // NewListCommand creates the list command
@@ -27,43 +28,49 @@ func NewListCommand() *cobra.Command {
 }
 
 func listContainers(all bool) error {
-	fmt.Println("📋 NebulaBox Containers:")
-	fmt.Println("CONTAINER ID    IMAGE           STATUS          NAMES")
-	fmt.Println("----------------------------------------------------")
-	
-	// Initialize containerd client
-	client, err := containerd.NewClient()
+	// Create engine client
+	client, err := NewEngineClient()
 	if err != nil {
-		return fmt.Errorf("failed to initialize containerd client: %w", err)
+		return fmt.Errorf("failed to create engine client: %w", err)
 	}
-	defer client.Close()
-	
-	ctx := context.Background()
-	
-	// Get containers
-	containers, err := client.ListContainers(ctx)
+
+	// List containers
+	containers, err := client.ListContainers()
 	if err != nil {
 		return fmt.Errorf("failed to list containers: %w", err)
 	}
-	
+
 	if len(containers) == 0 {
 		fmt.Println("No containers found")
 		return nil
 	}
-	
-	// Display containers
+
+	// Display containers in table format
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintln(w, "CONTAINER ID\tIMAGE\tSTATUS\tNAME\tCREATED")
+	fmt.Fprintln(w, "------------\t-----\t------\t----\t-------")
+
 	for _, container := range containers {
-		if !all && container.Status == "stopped" {
+		state := string(container.State)
+		if !all && container.State == engine.StateStopped {
 			continue // Skip stopped containers unless --all is specified
 		}
-		
-		fmt.Printf("%-15s %-15s %-15s %s\n", 
-			container.ID, 
-			container.Image, 
-			container.Status, 
-			container.Name)
+
+		containerID := container.ID
+		if len(containerID) > 12 {
+			containerID = containerID[:12]
+		}
+
+		created := container.CreatedAt.Format("2006-01-02 15:04:05")
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+			containerID,
+			container.Image,
+			state,
+			container.Name,
+			created)
 	}
-	
+
+	w.Flush()
 	return nil
 }
 
@@ -83,26 +90,23 @@ func NewStopCommand() *cobra.Command {
 }
 
 func stopContainers(containers []string) error {
-	// Initialize containerd client
-	client, err := containerd.NewClient()
+	// Create engine client
+	client, err := NewEngineClient()
 	if err != nil {
-		return fmt.Errorf("failed to initialize containerd client: %w", err)
+		return fmt.Errorf("failed to create engine client: %w", err)
 	}
-	defer client.Close()
-	
-	ctx := context.Background()
-	
-	for _, container := range containers {
-		fmt.Printf("🛑 Stopping container: %s\n", container)
-		
-		if err := client.StopContainer(ctx, container); err != nil {
-			fmt.Printf("❌ Failed to stop container %s: %v\n", container, err)
+
+	for _, containerID := range containers {
+		fmt.Printf("🛑 Stopping container: %s\n", containerID)
+
+		if err := client.StopContainer(containerID); err != nil {
+			fmt.Printf("❌ Failed to stop container %s: %v\n", containerID, err)
 			continue
 		}
-		
-		fmt.Printf("✅ Container %s stopped\n", container)
+
+		fmt.Printf("✅ Container %s stopped\n", containerID)
 	}
-	
+
 	return nil
 }
 
@@ -130,31 +134,37 @@ func NewLogsCommand() *cobra.Command {
 func showLogs(container string, follow bool, tail string) error {
 	fmt.Printf("📜 Logs for container: %s\n", container)
 	fmt.Println("----------------------------------------------------")
-	
-	// Initialize containerd client
-	client, err := containerd.NewClient()
+
+	// Create engine client
+	client, err := NewEngineClient()
 	if err != nil {
-		return fmt.Errorf("failed to initialize containerd client: %w", err)
+		return fmt.Errorf("failed to create engine client: %w", err)
 	}
-	defer client.Close()
-	
-	ctx := context.Background()
-	
-	// Get container logs
-	logs, err := client.GetContainerLogs(ctx, container)
+
+	// Get container
+	containerObj, err := client.GetContainer(container)
 	if err != nil {
-		return fmt.Errorf("failed to get logs for container %s: %w", container, err)
+		return fmt.Errorf("container %s not found: %w", container, err)
 	}
-	
+
+	// Get logs from engine
+	logs, err := client.GetContainerLogs(container)
+	if err != nil {
+		return fmt.Errorf("failed to get logs: %w", err)
+	}
+
 	if len(logs) == 0 {
-		fmt.Println("No logs available")
+		fmt.Printf("No logs available for container %s\n", containerObj.Name)
+		fmt.Println("(Container may not be running or logs not yet collected)")
 		return nil
 	}
-	
+
 	// Display logs
-	for _, log := range logs {
-		fmt.Println(log)
+	fmt.Println(string(logs))
+
+	if follow {
+		fmt.Println("\n💡 Follow mode not yet fully implemented - logs shown above")
 	}
-	
+
 	return nil
 }

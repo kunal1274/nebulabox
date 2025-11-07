@@ -1,0 +1,29 @@
+{
+  "name": "nebulabox",
+  "version": "1.0.0",
+  "description": "NebulaBox - Next-gen container runtime with schema-first architecture",
+  "private": true,
+  "scripts": {
+    "generate": "node scripts/generate-from-schema.js",
+    "generate:watch": "nodemon --watch schema/nebulabox.schema.json --exec 'npm run generate'",
+    "generate:types": "node scripts/generate-from-schema.js --types",
+    "generate:api": "node scripts/generate-from-schema.js --api",
+    "generate:db": "node scripts/generate-from-schema.js --db",
+    "generate:ui": "node scripts/generate-from-schema.js --ui",
+    "validate:schema": "node scripts/validate-schema.js",
+    "test:live": "node scripts/live-test-hooks.js",
+    "collaborate": "node scripts/collaboration-sync.js",
+    "schema:version": "node -e \"console.log(require('./schema/nebulabox.schema.json').version)\""
+  },
+  "devDependencies": {
+    "chokidar": "^3.5.3",
+    "nodemon": "^3.0.2",
+    "ws": "^8.16.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "node": "^25.1.0"
+  }
+}

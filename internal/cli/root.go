@@ -34,11 +34,23 @@ with enhanced simplicity and intelligence.`,
 	// Add subcommands
 	rootCmd.AddCommand(NewRunCommand())
 	rootCmd.AddCommand(NewListCommand())
+	
+	// Add ps as alias for list
+	psCmd := NewListCommand()
+	psCmd.Use = "ps"
+	psCmd.Aliases = []string{"list"}
+	rootCmd.AddCommand(psCmd)
+	
 	rootCmd.AddCommand(NewStopCommand())
 	rootCmd.AddCommand(NewLogsCommand())
 	rootCmd.AddCommand(NewBuildCommand())
 	rootCmd.AddCommand(NewPushCommand())
 	rootCmd.AddCommand(NewPullCommand())
+	rootCmd.AddCommand(NewImagesCommand()) // List images
+	rootCmd.AddCommand(NewRmiCommand())    // Remove images
+	rootCmd.AddCommand(NewGroupCommand())  // Container groups
+	rootCmd.AddCommand(NewHierarchyCommand()) // Hierarchical containers
+	rootCmd.AddCommand(NewAPICommand())
 	rootCmd.AddCommand(NewVersionCommand())
 
 	return rootCmd
